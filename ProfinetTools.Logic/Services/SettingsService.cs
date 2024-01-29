@@ -35,7 +35,7 @@ namespace ProfinetTools.Logic.Services
 		{
 			var disposables = new CompositeDisposable();
 			//Might be an isseu to cast here
-			var transport = new ProfinetEthernetTransport((ILiveDevice)adapter);
+			var transport = new ProfinetEthernetTransport(adapter);
 			transport.Open();
 			transport.AddDisposableTo(disposables);
 
@@ -68,7 +68,7 @@ namespace ProfinetTools.Logic.Services
 		public Task<SaveResult> FactoryReset(ICaptureDevice adapter, string deviceName)
 		{
 			var disposables = new CompositeDisposable();
-			var transport = new ProfinetEthernetTransport((ILiveDevice)adapter);
+			var transport = new ProfinetEthernetTransport(adapter);
 			transport.Open();
 			transport.AddDisposableTo(disposables);
 

@@ -13,7 +13,7 @@ namespace ProfinetTools.Logic.Transport
 {
 	public class ProfinetEthernetTransport : IDisposable
 	{
-		private ILiveDevice adapter;
+		private ICaptureDevice adapter;
 		private UInt32 lastXid = 0;
 		private bool isOpen = false;
 
@@ -25,12 +25,13 @@ namespace ProfinetTools.Logic.Transport
 		public event OnCyclicMessageHandler OnCyclicMessage;
 
 		public bool IsOpen => isOpen;
-		public ILiveDevice Adapter => adapter;
+		public ICaptureDevice Adapter => adapter;
 
-		public ProfinetEthernetTransport(ILiveDevice adapter)
+		public ProfinetEthernetTransport(ICaptureDevice adapter)
 		{
 			this.adapter = adapter;
-			this.adapter.OnPacketArrival += new PacketArrivalEventHandler(m_adapter_OnPacketArrival);
+            this.adapter.OnPacketArrival -= new PacketArrivalEventHandler(m_adapter_OnPacketArrival);
+            this.adapter.OnPacketArrival += new PacketArrivalEventHandler(m_adapter_OnPacketArrival);
 		}
 
 		/// <summary>
@@ -52,8 +53,8 @@ namespace ProfinetTools.Logic.Transport
 		public void Open()
 		{
 			if (isOpen) return;
-			if (adapter is SharpPcap.LibPcap.LibPcapLiveDevice)
-				((SharpPcap.LibPcap.LibPcapLiveDevice)adapter).Open(SharpPcap.DeviceModes.MaxResponsiveness | SharpPcap.DeviceModes.NoCaptureLocal, -1);
+			if (adapter is SharpPcap.ICaptureDevice)
+				((SharpPcap.ICaptureDevice)adapter).Open(SharpPcap.DeviceModes.MaxResponsiveness | SharpPcap.DeviceModes.NoCaptureLocal, -1);
 			else
 				adapter.Open(DeviceModes.None);
 			adapter.Filter = "ether proto 0x8892 or vlan 0";
@@ -68,7 +69,7 @@ namespace ProfinetTools.Logic.Transport
 			try
 			{
 				adapter.StopCapture();
-			}
+            }
 			catch
 			{
 			}
@@ -303,7 +304,7 @@ namespace ProfinetTools.Logic.Transport
 		private void Send(MemoryStream stream)
 		{
 			byte[] buffer = stream.GetBuffer();
-			adapter.SendPacket(buffer, (int)stream.Position);
+			((ILiveDevice) adapter).SendPacket(buffer, (int)stream.Position);
 		}
 
 		public void SendIdentifyBroadcast()

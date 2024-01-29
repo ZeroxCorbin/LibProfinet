@@ -17,12 +17,15 @@ namespace ProfinetTools.Logic.Services
 {
 	public class DeviceService : IDeviceService
 	{
+        //CompositeDisposable disposables = new CompositeDisposable();
+		ProfinetEthernetTransport transport;
 		public async Task<List<Device>> GetDevices(ICaptureDevice adapter, TimeSpan timeout)
 		{
-			var disposables = new CompositeDisposable();
-			var transport = new ProfinetEthernetTransport((ILiveDevice)adapter);
+				transport = new ProfinetEthernetTransport(adapter);
+				//transport.AddDisposableTo(disposables);
+
 			transport.Open();
-			transport.AddDisposableTo(disposables);
+			
 
 			var devices = new List<Device>();
 
@@ -31,16 +34,20 @@ namespace ProfinetTools.Logic.Services
 				.Where(device => devices!=null)
 				.Do(device => devices.Add(device))
 				.Subscribe()
-				.AddDisposableTo(disposables)
+				//.AddDisposableTo(disposables)
 				;
 
 			transport.SendIdentifyBroadcast();
 
 			await Task.Delay(timeout);
 
-			disposables.Dispose();
+            //transport.Close();
+//adapter.StopCapture();
+//            adapter.Close();
+            
+            //disposables.Dispose();
 
-			return devices;
+            return devices;
 		}
 
 		private readonly BehaviorSubject<Device> selectedDeviceSubject = new BehaviorSubject<Device>(null);
