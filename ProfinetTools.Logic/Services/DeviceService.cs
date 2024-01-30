@@ -6,6 +6,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using ProfinetTools.Interfaces.Extensions;
 using ProfinetTools.Interfaces.Models;
 using ProfinetTools.Interfaces.Services;
@@ -15,71 +16,78 @@ using SharpPcap;
 
 namespace ProfinetTools.Logic.Services
 {
-	public class DeviceService : IDeviceService
-	{
+    public class DeviceService : IDeviceService
+    {
         //CompositeDisposable disposables = new CompositeDisposable();
-		ProfinetEthernetTransport transport;
-		public async Task<List<Device>> GetDevices(ICaptureDevice adapter, TimeSpan timeout)
-		{
-				transport = new ProfinetEthernetTransport(adapter);
-				//transport.AddDisposableTo(disposables);
+        ProfinetEthernetTransport transport;
+        public async Task<List<Device>> GetDevices(ICaptureDevice adapter, TimeSpan timeout)
+        {
+            transport = new ProfinetEthernetTransport(adapter);
+            //transport.AddDisposableTo(disposables);
 
-			transport.Open();
-			
+            transport.Open();
 
-			var devices = new List<Device>();
 
-			Observable.FromEventPattern<ProfinetEthernetTransport.OnDcpMessageHandler, ConnectionInfoEthernet, DcpMessageArgs>(h => transport.OnDcpMessage += h, h => transport.OnDcpMessage -= h)
-				.Select(x => ConvertEventToDevice(x.Sender, x.EventArgs))
-				.Where(device => devices!=null)
-				.Do(device => devices.Add(device))
-				.Subscribe()
-				//.AddDisposableTo(disposables)
-				;
+            var devices = new List<Device>();
 
-			transport.SendIdentifyBroadcast();
+            Observable.FromEventPattern<ProfinetEthernetTransport.OnDcpMessageHandler, ConnectionInfoEthernet, DcpMessageArgs>(h => transport.OnDcpMessage += h, h => transport.OnDcpMessage -= h)
+                .Select(x => ConvertEventToDevice(x.Sender, x.EventArgs))
+                .Where(device => devices != null)
+                .Do(device => devices.Add(device))
+                .Subscribe()
+                //.AddDisposableTo(disposables)
+                ;
 
-			await Task.Delay(timeout);
+            transport.SendIdentifyBroadcast();
+
+            await Task.Delay(timeout);
 
             //transport.Close();
-//adapter.StopCapture();
-//            adapter.Close();
-            
+            //adapter.StopCapture();
+            //            adapter.Close();
+
             //disposables.Dispose();
 
             return devices;
-		}
+        }
 
-		private readonly BehaviorSubject<Device> selectedDeviceSubject = new BehaviorSubject<Device>(null);
+        private readonly BehaviorSubject<Device> selectedDeviceSubject = new BehaviorSubject<Device>(null);
 
-		public void SelectDevice(Device device)
-		{
-			selectedDeviceSubject.OnNext(device);
-		}
+        public void SelectDevice(Device device)
+        {
+            selectedDeviceSubject.OnNext(device);
+        }
 
-		public IObservable<Device> SelectedDevice => selectedDeviceSubject.AsObservable();
+        public IObservable<Device> SelectedDevice => selectedDeviceSubject.AsObservable();
 
-		private Device ConvertEventToDevice(ConnectionInfoEthernet sender, DcpMessageArgs args)
-		{
-			try
-			{
-				var device = new Device()
-				{
-					MAC = sender.Source.ToString(),
-					Name = (string)args.Blocks[DCP.BlockOptions.DeviceProperties_NameOfStation],
-					IP = ((DCP.IpInfo)args.Blocks[DCP.BlockOptions.IP_IPParameter]).Ip.ToString(),
-					SubnetMask = ((DCP.IpInfo)args.Blocks[DCP.BlockOptions.IP_IPParameter]).SubnetMask.ToString(),
-					Gateway = ((DCP.IpInfo)args.Blocks[DCP.BlockOptions.IP_IPParameter]).Gateway.ToString(),
-					Type = (string)args.Blocks[DCP.BlockOptions.DeviceProperties_DeviceVendor],
-					Role = ((DCP.DeviceRoleInfo)args.Blocks[DCP.BlockOptions.DeviceProperties_DeviceRole]).ToString()
-				};
-				return device;
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e);
-				return null;
-			}
-		}
-	}
+        private Device ConvertEventToDevice(ConnectionInfoEthernet sender, DcpMessageArgs args)
+        {
+            try
+            {
+                var device = new Device()
+                {
+                    MAC = sender.Source.ToString(),
+                    Name = (string)args.Blocks[DCP.BlockOptions.DeviceProperties_NameOfStation],
+                    IP = ((DCP.IpInfo)args.Blocks[DCP.BlockOptions.IP_IPParameter]).Ip.ToString(),
+                    SubnetMask = ((DCP.IpInfo)args.Blocks[DCP.BlockOptions.IP_IPParameter]).SubnetMask.ToString(),
+                    Gateway = ((DCP.IpInfo)args.Blocks[DCP.BlockOptions.IP_IPParameter]).Gateway.ToString(),
+                    VendorID = ((DCP.DeviceIdInfo)args.Blocks[DCP.BlockOptions.DeviceProperties_DeviceID]).VendorId.ToString(),
+                    DeviceID = ((DCP.DeviceIdInfo)args.Blocks[DCP.BlockOptions.DeviceProperties_DeviceID]).DeviceId.ToString(),
+                    Role = ((DCP.DeviceRoleInfo)args.Blocks[DCP.BlockOptions.DeviceProperties_DeviceRole]).ToString(),
+                    Type = (string)args.Blocks[DCP.BlockOptions.DeviceProperties_DeviceVendor],
+                };
+
+                device.DeviceOptions = new List<ushort>();
+                foreach(var op in (DCP.BlockOptions[])args.Blocks[DCP.BlockOptions.DeviceProperties_DeviceOptions])
+                    device.DeviceOptions.Add((ushort)op);
+
+                return device;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return null;
+            }
+        }
+    }
 }

@@ -54,7 +54,7 @@ namespace ProfinetTools.Logic.Transport
 		{
 			if (isOpen) return;
 			if (adapter is SharpPcap.ICaptureDevice)
-				((SharpPcap.ICaptureDevice)adapter).Open(SharpPcap.DeviceModes.MaxResponsiveness | SharpPcap.DeviceModes.NoCaptureLocal, -1);
+				adapter.Open(SharpPcap.DeviceModes.MaxResponsiveness | SharpPcap.DeviceModes.NoCaptureLocal, -1);
 			else
 				adapter.Open(DeviceModes.None);
 			adapter.Filter = "ether proto 0x8892 or vlan 0";
