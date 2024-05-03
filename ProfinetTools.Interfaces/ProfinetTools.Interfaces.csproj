@@ -23,7 +23,7 @@
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     <PackageReference Include="Ninject" Version="3.3.6" />
     <PackageReference Include="PacketDotNet" Version="1.4.7" />
-    <PackageReference Include="SharpPcap" Version="6.2.5" />
+    <PackageReference Include="SharpPcap" Version="6.3.0" />
     <PackageReference Include="System.Reactive" Version="6.0.0" />
   </ItemGroup>
 </Project>
