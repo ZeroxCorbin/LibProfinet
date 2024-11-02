@@ -20,13 +20,10 @@ namespace ProfinetTools.Logic.Services
     {
         //CompositeDisposable disposables = new CompositeDisposable();
         ProfinetEthernetTransport transport;
-        public async Task<List<Device>> GetDevices(ICaptureDevice adapter, TimeSpan timeout)
+        public async Task<List<Device>> GetDevices(ICaptureDevice adapter, TimeSpan timeout, CancellationToken token)
         {
-            transport = new ProfinetEthernetTransport(adapter);
-            //transport.AddDisposableTo(disposables);
-
+            using var transport = new ProfinetEthernetTransport(adapter);
             transport.Open();
-
 
             var devices = new List<Device>();
 
@@ -35,18 +32,18 @@ namespace ProfinetTools.Logic.Services
                 .Where(device => devices != null)
                 .Do(device => devices.Add(device))
                 .Subscribe()
-                //.AddDisposableTo(disposables)
                 ;
 
             transport.SendIdentifyBroadcast();
 
-            await Task.Delay(timeout);
-
-            //transport.Close();
-            //adapter.StopCapture();
-            //            adapter.Close();
-
-            //disposables.Dispose();
+            try
+            {
+                await Task.Delay((int)timeout.TotalMilliseconds, token);
+            }
+            catch (TaskCanceledException)
+            {
+              
+            }
 
             return devices;
         }
